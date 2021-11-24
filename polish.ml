@@ -50,7 +50,38 @@ type program = block
 
 (***********************************************************************)
 
-let read_polish (filename:string) : program = failwith "TODO"
+(* TODO :
+	0 - Supprimer les espaces inutiles (sauf tabulations début de lignes)
+	1 - Créer des blocs si nombre pair d'espaces en début de ligne
+	2 - Clean les fonctions inutiles
+ *)
+
+let split_words line =
+	String.split_on_char(' ')(line)
+	
+let rec print_list l =
+	match l with 
+	| [] -> ()
+	| e::l -> print_endline e; print_list l
+
+let rec print_file lines =
+	match lines with 
+	| [] -> ()
+	| e::l -> print_list e; print_endline "--NEW LINE--"; print_file l
+
+let read_polish (filename:string) = 
+	let get_lines file =
+		let ic = open_in filename 
+		in let try_read () =
+			try
+				Some(input_line ic)
+			with End_of_file -> None
+		in let rec aux acc =
+			match try_read () with
+			| None -> acc
+			| Some(line) -> aux(acc @ [String.split_on_char(' ')(line)])
+		in aux []
+	in print_file (get_lines filename)
 
 let print_polish (p:program) : unit = failwith "TODO"
 
@@ -62,8 +93,8 @@ let usage () =
 
 let main () =
   match Sys.argv with
-  | [|_;"--reprint";file|] -> print_polish (read_polish file)
-  | [|_;"--eval";file|] -> eval_polish (read_polish file)
+  | [|_;"--reprint";file|] -> read_polish file
+  | [|_;"--eval";file|] -> read_polish file
   | _ -> usage ()
 
 (* lancement de ce main *)
