@@ -101,17 +101,69 @@ let parse_cond	line =
 	Il faut avancer dans les lettre de la ligne jsq voir un caractère de condition, sinon on est dans une expression (parse_expr).
 	*)
 
+let is_int str =
+	let rec aux i =
+		try (
+			let ch = String.get(str)(i)
+			in if Char.code ch <= 57 && Char.code ch >= 48 then aux(i+1)
+			else false
+		) with Invalid_argument(i) -> true
+	in aux 0
+
+let substr words start =
+	let rec aux index wds =
+		match wds with 
+		| [] -> words
+		| e::l -> if index = start - 1 then l
+					 else aux (index+1) (l)
+	in aux 0 words
+
+let is_op op =
+	if op = "+" || op = "-"  || op = "*" || op = "/" || op = "%" then true
+	else false
+
+let parse_op op =
+	if op = "+" then Add
+	else if op = "-" then Sub
+	else if op = "*" then Mul
+	else if op = "/" then Div
+	else if op = "%" then Mod
+	else raise (Failure "Unexpected operand")
+
+let pop stack =
+	match stack with
+	| [] -> raise (Failure "Empty stack")
+	| e::l -> (e, l)
+
 let parse_expr words =
-	(* words est l'ensembre des mots lu qui sont censés créer l'expression *)
+	let rec aux words_stack =
+		let split_stack = pop(words_stack)
+		in let wd = fst(split_stack)
+		in let stack = snd(split_stack)
+		in if is_op wd then
+			let res_next_call = aux(stack)
+			in let new_stack = snd(res_next_call)
+			in let right_res = aux(new_stack)
+			in (Op(parse_op(wd), fst(res_next_call), fst(right_res)), snd(right_res))
+		else if is_int wd then
+			(Num(int_of_string wd), stack)
+		else 
+			(Var(wd), stack)
+	in let res = aux words
+	in if List.length (snd(res)) > 0 then raise (Failure "Expression not available")
+		else fst(res)
 
-let parse_num word =
-	(* Lit word et décide s'il est un num ou non, le renvoie si oui *)
-
-let parse_var word =
-	(* Créé si la var n'existe pas, rééassigne sa valeur sinon (liste de variables) *)
-
-let parse_op words =
-	(* Renvoie un op (Add ou Sub, ... avec les valeurs qu'il opère) *)
+(* Print sous forme infixe *)
+let rec print_expr expression =
+	match expression with 
+	| Num(i) -> string_of_int i
+	| Var(name) -> name
+	| Op(op, l, d) -> (match op with
+							| Mul -> "(" ^ print_expr(l) ^ " * " ^ print_expr(d) ^ ")"
+							| Add -> "(" ^ print_expr(l) ^ " + " ^ print_expr(d) ^ ")"
+							| Sub -> "(" ^ print_expr(l) ^ " - " ^ print_expr(d) ^ ")"
+							| Div -> "(" ^ print_expr(l) ^ " / " ^ print_expr(d) ^ ")"
+							| Mod -> "(" ^ print_expr(l) ^ " % " ^ print_expr(d) ^ ")")
 
 let get_lines filename =
 	let ic = open_in filename 
