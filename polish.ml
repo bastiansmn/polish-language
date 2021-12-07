@@ -110,14 +110,6 @@ let is_int str =
 		) with Invalid_argument(i) -> true
 	in aux 0
 
-let substr words start =
-	let rec aux index wds =
-		match wds with 
-		| [] -> words
-		| e::l -> if index = start - 1 then l
-					 else aux (index+1) (l)
-	in aux 0 words
-
 let is_op op =
 	if op = "+" || op = "-"  || op = "*" || op = "/" || op = "%" then true
 	else false
@@ -153,17 +145,17 @@ let parse_expr words =
 	in if List.length (snd(res)) > 0 then raise (Failure "Expression not available")
 		else fst(res)
 
-(* Print sous forme infixe *)
+(* Print sous forme prefixe *)
 let rec print_expr expression =
 	match expression with 
 	| Num(i) -> string_of_int i
 	| Var(name) -> name
 	| Op(op, l, d) -> (match op with
-							| Mul -> "(" ^ print_expr(l) ^ " * " ^ print_expr(d) ^ ")"
-							| Add -> "(" ^ print_expr(l) ^ " + " ^ print_expr(d) ^ ")"
-							| Sub -> "(" ^ print_expr(l) ^ " - " ^ print_expr(d) ^ ")"
-							| Div -> "(" ^ print_expr(l) ^ " / " ^ print_expr(d) ^ ")"
-							| Mod -> "(" ^ print_expr(l) ^ " % " ^ print_expr(d) ^ ")")
+							| Mul -> "(" ^ " * " ^ print_expr(l) ^ print_expr(d) ^ ")"
+							| Add -> "(" ^ " + " ^ print_expr(l) ^ print_expr(d) ^ ")"
+							| Sub -> "(" ^ " - " ^ print_expr(l) ^ print_expr(d) ^ ")"
+							| Div -> "(" ^ " / " ^ print_expr(l) ^ print_expr(d) ^ ")"
+							| Mod -> "(" ^ " % " ^ print_expr(l) ^ print_expr(d) ^ ")")
 
 let get_lines filename =
 	let ic = open_in filename 
