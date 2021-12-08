@@ -96,6 +96,13 @@ let parse_while lines =
 	 *)
 
 let parse_cond	line = 
+	let rec aux wrd = 
+		match wrd with
+		| [] -> cond()
+		| e::l -> if 
+	in match line with
+	| [] -> raise (Invalid)
+	| a -> aux a;
 	failwith "TODO"
 	(* Lit la ligne (line), et parse_expr * parse_comp * parse_expr 
 	Il faut avancer dans les lettre de la ligne jsq voir un caractère de condition, sinon on est dans une expression (parse_expr).
