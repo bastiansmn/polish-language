@@ -165,7 +165,7 @@ let rec print_expr expression =
 let parse_cond line =
   let rec aux_cond wrd acc =
     match wrd with
-    | [] -> raise (Failure "Unexpected line") 
+    | [] -> raise (Failure "Unexpected syntaxe line") 
     | e::l -> if is_comp e then (parse_expr acc * parse_comp e * parse_expr l)
         else aux_cond l (acc::e) 
   in aux_cond line []
