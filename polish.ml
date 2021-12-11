@@ -166,8 +166,8 @@ let parse_cond line =
   let rec aux_cond wrd acc =
     match wrd with
     | [] -> raise (Failure "Unexpected syntaxe line") 
-    | e::l -> if is_comp e then (parse_expr acc * parse_comp e * parse_expr l)
-        else aux_cond l (acc::e) 
+    | e::l -> if is_comp e then (parse_expr (acc), parse_comp e, parse_expr l)
+        else aux_cond l (acc@[e]) 
   in aux_cond line []
 	(* La fonction parcours l'element line si un element cond est trouvé alors elle renvoie l'object avec
 	l'expression contenu en accumulateur, la condition courante et le reste de la list
