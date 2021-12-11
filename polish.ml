@@ -95,16 +95,6 @@ let parse_while lines =
 	Ensuite parse_block pour le reste
 	 *)
 
-let parse_cond line =
-	let rec aux_cond wrd list i =
-		match wrd with
-		| [] -> (parse_expr nth list 0) * (parse_comp nth list 1 ) * (parse_expr nth list 2)
-		| e::l -> if (<> is_comp e) then aux_cond l ((nth list i)::e) i else aux_cond l ((nth list (i+1))::e) i+2;
-		in aux_cond line [[]] 0
-	(* Lit la ligne (line), et parse_expr * parse_comp * parse_expr
-	Il faut avancer dans les lettre de la ligne jsq voir un caractère de condition, sinon on est dans une expression (parse_expr).
-	*)
-
 let parse_comp comp =
 	if comp = "=" then Eq
 	else if comp = "<>" then Ne
@@ -171,6 +161,18 @@ let rec print_expr expression =
 							| Sub -> "(" ^ " - " ^ print_expr(l) ^ print_expr(d) ^ ")"
 							| Div -> "(" ^ " / " ^ print_expr(l) ^ print_expr(d) ^ ")"
 							| Mod -> "(" ^ " % " ^ print_expr(l) ^ print_expr(d) ^ ")")
+
+let parse_cond line =
+  let rec aux_cond wrd acc =
+    match wrd with
+    | [] -> raise (Failure "Unexpected line") 
+    | e::l -> if is_comp e then (parse_expr acc * parse_comp e * parse_expr l)
+        else aux_cond l (acc::e) 
+  in aux_cond line []
+	(* La fonction parcours l'element line si un element cond est trouvé alors elle renvoie l'object avec
+	l'expression contenu en accumulateur, la condition courante et le reste de la list
+	Si on arrive à la fin du parcours, c'est qu'il y'a eu un probleme de syntaxe
+	 *)
 
 let get_lines filename =
 	let ic = open_in filename
