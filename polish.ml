@@ -52,20 +52,20 @@ type program = block
 
 let split_words line =
 	String.split_on_char(' ')(line)
-	
+
 let rec print_list l =
-	match l with 
+	match l with
 	| [] -> ()
 	| e::l -> print_endline e; print_list l
 
 let rec print_file lines =
-	match lines with 
+	match lines with
 	| [] -> ()
 	| e::l -> print_list e; print_endline "--NEW LINE--"; print_file l
 
 let parse_block lines =
 	failwith "TODO"
-	(* Lit chaque lignes, 
+	(* Lit chaque lignes,
 	si on remarque une indentation différente de celle courante (créer fonction aux ?), alors créer nouveau block avec les lignes qui ont cette même indentation (parse_block rec) (Peut etre ajouter un i = indentation pour le comparer aux blocs suivants)
 	sinon (si on est dans la même indentation que le block courant), la ligne courante est une instruction (parse_instr)
 	Exemple :
@@ -75,7 +75,7 @@ let parse_block lines =
 	ELSE
 		IF n = 1			<- lecture d'un nv block (2)
 			n = 14      <- lecture d'un nv block (4)
-		ELSE 
+		ELSE
 			n = 11 		<- idem
 	return n
 	*)
@@ -83,7 +83,7 @@ let parse_block lines =
 let parse_instr lines =
 	failwith "TODO"
 	(* Lit chaques lignes
-	Si on lit un mot clé d'instruction (READ, SET, ...), alors on transf cette expr en ce qu'elle est censé devenir (appel à des fonctions pour chaque instr ?) 
+	Si on lit un mot clé d'instruction (READ, SET, ...), alors on transf cette expr en ce qu'elle est censé devenir (appel à des fonctions pour chaque instr ?)
 	sinon (il devrait y avoir une erreur ou un comm)
 	*)
 
@@ -95,19 +95,27 @@ let parse_while lines =
 	Ensuite parse_block pour le reste
 	 *)
 
-let parse_cond	line = 
-	let rec aux wrd = 
+let parse_cond line =
+	let rec aux_cond wrd list i =
 		match wrd with
-		| [] -> cond()
-		| e::l -> if 
-	in match line with
-	| [] -> raise (Invalid)
-	| a -> aux a;
-	failwith "TODO"
-	(* Lit la ligne (line), et parse_expr * parse_comp * parse_expr 
+		| [] -> (parse_expr nth list 0) * (parse_comp nth list 1 ) * (parse_expr nth list 2)
+		| e::l -> if (<> is_comp e) then aux_cond l ((nth list i)::e) i else aux_cond l ((nth list (i+1))::e) i+2;
+		in aux_cond line [[]] 0
+	(* Lit la ligne (line), et parse_expr * parse_comp * parse_expr
 	Il faut avancer dans les lettre de la ligne jsq voir un caractère de condition, sinon on est dans une expression (parse_expr).
 	*)
 
+let parse_comp comp =
+	if comp = "=" then Eq
+	else if comp = "<>" then Ne
+	else if comp = "<" then Lt
+	else if comp = "<=" then Le
+	else if comp = ">" then Gt
+	else if comp = ">=" then Ge
+	else raise (Failure "Unexpected operator") 
+
+let is_comp comp = (comp = "=" || comp = "<>"  || comp = "<" || comp = "<=" || comp = ">" || comp = ">=")
+		
 let is_int str =
 	let rec aux i =
 		try (
@@ -146,7 +154,7 @@ let parse_expr words =
 			in (Op(parse_op(wd), fst(res_next_call), fst(right_res)), snd(right_res))
 		else if is_int wd then
 			(Num(int_of_string wd), stack)
-		else 
+		else
 			(Var(wd), stack)
 	in let res = aux words
 	in if List.length (snd(res)) > 0 then raise (Failure "Expression not available")
@@ -154,7 +162,7 @@ let parse_expr words =
 
 (* Print sous forme prefixe *)
 let rec print_expr expression =
-	match expression with 
+	match expression with
 	| Num(i) -> string_of_int i
 	| Var(name) -> name
 	| Op(op, l, d) -> (match op with
@@ -165,7 +173,7 @@ let rec print_expr expression =
 							| Mod -> "(" ^ " % " ^ print_expr(l) ^ print_expr(d) ^ ")")
 
 let get_lines filename =
-	let ic = open_in filename 
+	let ic = open_in filename
 	in let try_read () =
 		try
 			Some(input_line ic)
@@ -176,7 +184,7 @@ let get_lines filename =
 		| Some(line) -> aux(acc @ [split_words line])
 	in aux []
 
-let read_polish (filename:string) = 
+let read_polish (filename:string) =
 	print_file (get_lines filename)
 
 let print_polish (p:program) : unit = failwith "TODO"
