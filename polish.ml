@@ -174,6 +174,18 @@ let parse_cond line =
 	Si on arrive à la fin du parcours, c'est qu'il y'a eu un probleme de syntaxe
 	 *)
 
+let print_cond cond = 
+	let print_comp comp = 
+		match comp with
+		| Eq -> "="
+		| Ne -> "<>"
+		| Lt -> "<"
+		| Le -> "<="
+		| Gt -> ">"
+		| Ge -> ">="
+	in match cond with
+	| (a, b, c) -> print_expr(a) ^ " " ^ print_comp(b) ^ " " ^ print_expr(c)
+
 let get_lines filename =
 	let ic = open_in filename
 	in let try_read () =
