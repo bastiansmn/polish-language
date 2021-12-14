@@ -78,28 +78,28 @@ let parse_op op =
    else if op = "%" then Mod
    else raise (Failure "Unexpected operand")
 
-let pop stack =
-   match stack with
-   | [] -> raise (Failure "Empty stack")
-   | e::l -> (e, l)
-
 let parse_expr words =
-   let rec aux words_stack =
-      let split_stack = pop(words_stack)
-      in let wd = fst(split_stack)
-      in let stack = snd(split_stack)
+   let rec listtostack list acc =
+      match list with
+      | [] -> acc
+      | e::l -> let _ = Stack.push(e)(acc) in listtostack l acc 
+   in let stack = listtostack (List.rev(words)) (Stack.create())
+   in let rec aux () =
+      let wd = Stack.pop(stack)
       in if is_op wd then
-         let res_next_call = aux(stack)
-         in let new_stack = snd(res_next_call)
-         in let right_res = aux(new_stack)
-         in (Op(parse_op(wd), fst(res_next_call), fst(right_res)), snd(right_res))
-      else if is_int wd then
-         (Num(int_of_string wd), stack)
+         Op(parse_op(wd), aux (), aux ())
+      else if is_int wd then 
+         Num(int_of_string(wd))
       else
-         (Var(wd), stack)
-   in let res = aux words
-   in if List.length (snd(res)) > 0 then raise (Failure "Expression not available")
-      else fst(res)
+         Var(wd)
+   in let res = aux ()
+   in let rec invertOp op =
+      match op with
+      | Num(i) -> Num(i)
+      | Var(s) -> Var(s)
+      | Op(op, e1, e2) -> Op(op, invertOp e2, invertOp e1)
+   in if not(Stack.is_empty(stack)) then raise (Failure "Expression not available")
+      else invertOp(res)
 
 let parse_cond line =
    let rec aux_cond wrd acc =
@@ -108,10 +108,6 @@ let parse_cond line =
       | e::l -> if is_comp e then (parse_expr (acc), parse_comp e, parse_expr l)
          else aux_cond l (acc@[e]) 
    in aux_cond line []
-   (* La fonction parcours l'element line si un element cond est trouvé alors elle renvoie l'object avec
-   l'expression contenu en accumulateur, la condition courante et le reste de la list
-   Si on arrive à la fin du parcours, c'est qu'il y'a eu un probleme de syntaxe
-    *)
 
 let get_lines filename =
    let ic = open_in filename
