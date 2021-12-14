@@ -19,12 +19,12 @@ type expr =
 
 (** Opérateurs de comparaisons *)
 type comp =
-| Eq (* = *)
-| Ne (* Not equal, <> *)
-| Lt (* Less than, < *)
-| Le (* Less or equal, <= *)
-| Gt (* Greater than, > *)
-| Ge (* Greater or equal, >= *)
+  | Eq (* = *)
+  | Ne (* Not equal, <> *)
+  | Lt (* Less than, < *)
+  | Le (* Less or equal, <= *)
+  | Gt (* Greater than, > *)
+  | Ge (* Greater or equal, >= *)
 
 (** Condition : comparaison entre deux expressions *)
 type cond = expr * comp * expr
