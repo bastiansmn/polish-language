@@ -1,20 +1,27 @@
 (*Fonction pour pour l'env *)
 
+(* Verifie si une valeur est bien dans l'environnement *)
 let rec isInEnv env name = match env with
   | [] -> false
   | element::restant -> if(equal (fst (element)) name ) then true
                         else isInEnv restant name
 
+(* Recupere une valeur dans l'environnement *)
 let rec getValueEnv env name = match env with
-  | [] -> -99999
+  | [] -> -9999999
   | element::restant -> if(equal (fst (element)) name ) then snd(element)  
                         else getValueEnv restant name
 
+(* Entree : environnement et une expression
+  decompose l'expression et applique le calcul
+Sortie: valeur (int) de cette expression
+*)
+  
 let rec calcul_expr env expr = 
   match expr with
   | Num (int) -> int
   | Var (name) -> if (isInEnv env name) then getValueEnv env name
-                  else raise (Division_by_zero)
+                  else raise (Division_by_zero) (* TODO : Pas la bonne exception*)
   | Op (op, expr_fst, expr_snd) ->
      let expr_gauche = calcul_expr env expr_fst in
      let expr_droite = calcul_expr env expr_snd in
@@ -53,6 +60,11 @@ let function_verifie_condition env (expr_fst, comp, expr_snd) =
   | Gt -> calcul_expr env expr_fst > calcul_expr env expr_snd
   | Ge -> calcul_expr env expr_fst >= calcul_expr env expr_snd
 
+  (* Entree : environnement et un block 
+    Cette fonction va prendre un block et un environnement 
+    elle va evaluer chaque ligne du bloc en cherchant les instructions correspondante
+    Sortie : environnement modifié
+    *)
 let rec eval_block env block =
   match block with
   | [] -> env
@@ -72,8 +84,13 @@ and  eval_instruction env instruction =
      then eval_instruction (eval_block env block_while) instruction 
      else env
 
+ (* Evalue un program et initialise l'environnement de base à []*)    
+
 let eval program  = eval_block [] program
 
-;;
-eval abs;;
-eval factors;;
+(* Environnement c'est quoi ?
+
+Un environement est une liste de couple (name, value), ou name vaut le nom d'une variable et value sa valeur respectif 
+demamder lors d'un read ou d'un set
+
+ *)
