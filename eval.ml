@@ -12,10 +12,10 @@ let eval_instruction environnement instruction =
     | Read (name) -> function_read environnement name
     | Print (expr) -> function_print environnement expr
     | If (cond, block, block_else) -> 
-        if verifie_condition cond then eval_block block 
+        if function_verifie_condition cond then eval_block block 
         else eval_block block_else 
     | While (cond , block) ->
-        if verifie_condition cond then eval_block block 
+        if function_verifie_condition cond then eval_block block 
         else (*arreter le programme *)
 
 let rec calcul_expr environnement expr = 
@@ -51,7 +51,7 @@ let function_print expr = printf "<calcul> = %d \n" (calcule_expr expr)
 
 (*Entre cond :   expr_fst * comp * expr_snd et verification que tout est correct.
  Sortie:  True ou False  *)
-let verifie_condition cond =
+let function_verifie_condition cond =
      match cond with
      |_ (expr_fst, comp, expr_snd) -> match comp with
                                         | Eq -> calcul_expr expr_fst = calcul_expr expr_snd
