@@ -1,5 +1,3 @@
-(* TODO Reprint *)
-
 open Model
 open Printf
 

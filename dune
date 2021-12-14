@@ -1,5 +1,5 @@
 (executable
  (name polish)
- (modules polish parser model reprint)
+ (modules polish parser model eval reprint)
  (flags :standard -w -27-26-32-33 \ -short-paths)
 )
