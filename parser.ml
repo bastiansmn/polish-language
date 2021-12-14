@@ -61,7 +61,7 @@ let is_int str =
 	let rec aux i =
 		try (
 			let ch = String.get(str)(i)
-			in if Char.code ch <= 57 && Char.code ch >= 48 then aux(i+1)
+			in if Char.code ch <= 57 && Char.code ch >= 48 || (ch = '-' && i = 0) then aux(i+1)
 			else false
 		) with Invalid_argument(i) -> true
 	in aux 0
@@ -101,19 +101,6 @@ let parse_expr words =
 	in if List.length (snd(res)) > 0 then raise (Failure "Expression not available")
 		else fst(res)
 
-
-(* Print sous forme prefixe *)
-let rec print_expr expression =
-	match expression with
-	| Num(i) -> string_of_int i
-	| Var(name) -> name
-	| Op(op, l, d) -> (match op with
-							| Mul -> "(" ^ " * " ^ print_expr(l) ^ print_expr(d) ^ ")"
-							| Add -> "(" ^ " + " ^ print_expr(l) ^ print_expr(d) ^ ")"
-							| Sub -> "(" ^ " - " ^ print_expr(l) ^ print_expr(d) ^ ")"
-							| Div -> "(" ^ " / " ^ print_expr(l) ^ print_expr(d) ^ ")"
-							| Mod -> "(" ^ " % " ^ print_expr(l) ^ print_expr(d) ^ ")")
-
 let parse_cond line =
   let rec aux_cond wrd acc =
     match wrd with
@@ -125,18 +112,6 @@ let parse_cond line =
 	l'expression contenu en accumulateur, la condition courante et le reste de la list
 	Si on arrive à la fin du parcours, c'est qu'il y'a eu un probleme de syntaxe
 	 *)
-
-let print_cond cond = 
-	let print_comp comp = 
-		match comp with
-		| Eq -> "="
-		| Ne -> "<>"
-		| Lt -> "<"
-		| Le -> "<="
-		| Gt -> ">"
-		| Ge -> ">="
-	in match cond with
-	| (a, b, c) -> print_expr(a) ^ " " ^ print_comp(b) ^ " " ^ print_expr(c)
 
 let get_lines filename =
 	let ic = open_in filename
