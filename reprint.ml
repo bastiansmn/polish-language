@@ -29,21 +29,22 @@ let print_cond cond =
    | (a, b, c) -> print_expr(a) ^ " " ^ print_comp(b) ^ " " ^ print_expr(c)
 
 let rec getindentstring indentation =
-   if indentation = 0 then "-"
+   if indentation = 0 then ""
    else " " ^ getindentstring(indentation-1)
+
+
+let rec print_block block indent =
+   let print_instr instr indent =
+      match instr with
+      | Set(name, expr) -> sprintf "%s := %s\n" (name) (print_expr expr)
+      | Read(name) -> sprintf "READ %s\n" (name)
+      | Print(expr) -> sprintf "PRINT %s\n" (print_expr expr)
+      | If(cond, instr1, instr2) ->	sprintf "IF %s\n%s%sELSE\n%s" (print_cond cond) (print_block instr1 (indent+2)) (getindentstring indent) (print_block instr2 (indent+2))
+      | While(cond, instr) -> sprintf "WHILE %s\n%s" (print_cond cond) (print_block instr (indent+2))
+   in match block with
+   | [] -> ""
+   | (_, instr)::l -> getindentstring(indent) ^ print_instr(instr)(indent) ^  print_block(l)(indent)
 
 let print_program program =
    printf "%s" (print_block program 0)
-
-let rec print_block block indent =
-   match block with
-   | [] -> ""
-   | (_, instr)::l -> getindentstring(indent) ^ print_instr(instr)(indent) ^ "\n" ^ print_block(l)(indent)
    
-let print_instr instr indent =
-   match instr with
-   | Set(name, expr) -> sprintf "%s := %s" (name) (print_expr expr)
-   | Read(name) -> sprintf "READ %s" (name)
-   | Print(expr) -> sprintf "PRINT %s" (print_expr expr)
-   | If(cond, instr1, instr2) ->	sprintf "IF %s\n%sELSE\n%s" (print_cond cond) (print_block instr1 (indent+2)) (print_block instr2 (indent+2))
-   | While(cond, instr) -> sprintf "WHILE %s\n%s" (print_cond cond) (print_block instr (indent+2))

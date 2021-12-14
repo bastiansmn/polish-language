@@ -9,7 +9,7 @@
 
 open Model
 
-let abs = [
+let abs:program = [
   (1, Read("n"));
   (2, If(
     (Var("n"), Lt, Num(0)),
@@ -24,7 +24,7 @@ let abs = [
 ]
 
 
-let factors = [
+let factors:program = [
   (1, Read("n"));
   (2, If(
     (Var("n"), Le, Num(0)),
@@ -54,7 +54,7 @@ let factors = [
 ]
 
 
-let eval_polish (p:Model.program) : unit = failwith "TODO"
+let eval_polish (p:program) : unit = failwith "TODO"
 
 let usage () =
   print_string "Polish : analyse statique d'un mini-langage\n";
@@ -62,7 +62,7 @@ let usage () =
 
 let main () =
   match Sys.argv with
-  | [|_;"--reprint";file|] -> Reprint.print_program ()
+  | [|_;"--reprint";file|] -> Reprint.print_program abs
   | [|_;"--eval";file|] -> Parser.read_polish file
   | _ -> usage ()
 
