@@ -64,7 +64,7 @@ let usage () =
 let main () =
   match Sys.argv with
   | [|_;"--reprint";file|] -> Reprint.print_program ( parse_program ( get_lines file ) )
-  | [|_;"--eval";file|] -> read_polish file
+  (* | [|_;"--eval";file|] -> Eval.eval ( parse_program ( get_lines file ) ) *)
   | _ -> usage ()
 
 (* lancement de ce main *)

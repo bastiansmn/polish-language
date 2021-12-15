@@ -3,16 +3,6 @@ open Model
 let split_words line =
    String.split_on_char(' ')(line)
 
-let rec print_list l =
-   match l with
-   | [] -> ()
-   | e::l -> print_string e; Printf.printf " "; print_list l
-
-let rec print_file lines =
-   match lines with
-   | [] -> ()
-   | e::l -> print_list e; Printf.printf "\n"; print_file l
-
 let parse_comp comp =
    if comp = "=" then Eq
    else if comp = "<>" then Ne
@@ -92,9 +82,6 @@ let get_lines filename =
       | Some(line) -> aux(acc @ [split_words line])
    in aux []
 
-let read_polish (filename:string) =
-   print_file (get_lines filename)
-
 (* Renvoie le nombre d'espaces en début de ligne *)
 let getindentation line =
    let rec aux line acc =
@@ -124,7 +111,6 @@ let unindent line =
 
 (* Parse set ssi il n'y a qu'une var avant := et une expr après *)
 let parse_set line =
-   print_list (unindent line);
    let rec aux_set line acc =
       match line with
       | [] -> raise (Failure "Unexpected syntaxe line") 
@@ -146,9 +132,9 @@ let parse_set line =
 let getlines_with_indent lines ind =
    let rec aux lines acc =
       match lines with
-      | [] -> acc
-      | e::l -> if getindentation e = ind || List.hd(unindent e) = "ELSE" then aux l (acc@[e])
-                else acc
+      | [] -> (acc, [])
+      | e::l -> if getindentation e = ind then aux l (acc@[e])
+                else (acc, e::l)
    in aux lines []
 
 (* Sépare des lignes en 2 listes de lignes à l'endroit où on lit ELSE 
@@ -168,30 +154,39 @@ let split_in_blocs lines =
 (* Parse un programme et appel parse les blocs intérieurs récursivement *)
 let parse_program lines =
    let rec parse_block indent lines iline =
-      match lines with 
-      | [] -> []
-      | line::rest -> if getindentation line = indent then
-                        match unindent(line) with
-                        | [] -> [] (* TODO Vérifier si on devrait renvoyer err *)
-                        | wd::r ->  if wd = "READ" then 
-                                       (iline, parse_read (r))::(parse_block indent rest (iline+1))
-                                    else if wd = "PRINT" then
-                                       (iline, parse_print (r))::(parse_block indent rest (iline+1))
-                                    else if wd = "COMMENT" then
-                                       parse_block (indent) (rest) (iline+1)
-                                    else if wd = "IF" then
-                                       let blocs = split_in_blocs ( getlines_with_indent rest (indent+2) )
-                                       in (iline, 
-                                          If(parse_cond r,
-                                              parse_block (indent+2) (fst(blocs)) (iline+1),
-                                              parse_block (indent+2) (snd(blocs)) (iline+1)
-                                          ))::(parse_block indent rest (iline+1))
-                                    else if wd = "WHILE" then
-                                       (iline,
-                                          While(parse_cond (r), parse_block (indent+2) (getlines_with_indent rest (indent+2)) (iline+1))
-                                       )::(parse_block indent rest (iline+1))
-                                    else 
-                                       (iline, parse_set (wd::r))::(parse_block indent rest (iline+1))
-                      else raise (Failure ( Printf.sprintf 
-                                    "Unexpected indentation : line=%d ('%s')\nGot %d expected %d" iline (String.concat " " line) (getindentation line) indent))
+         match lines with 
+         | [] -> []
+         | line::rest -> if getindentation line = indent then
+                           match unindent(line) with
+                           | [] -> [] (* TODO Vérifier si on devrait renvoyer err *)
+                           | wd::r ->  if wd = "READ" then 
+                                          (iline, parse_read (r))::(parse_block indent rest (iline+1))
+                                       else if wd = "PRINT" then
+                                          (iline, parse_print (r))::(parse_block indent rest (iline+1))
+                                       else if wd = "COMMENT" then
+                                          parse_block (indent) (rest) (iline+1)
+                                       else if wd = "IF" then
+                                          let blocif_and_rest = getlines_with_indent (rest) (indent+2) 
+                                          in match snd(blocif_and_rest) with
+                                             | [] -> raise (Failure "ELSE cannot be empty")
+                                             | line::rest -> if List.hd(unindent line) = "ELSE" && getindentation(line) = indent then
+                                                               let blocelse_and_rest = getlines_with_indent (rest) (indent+2)
+                                                               in let blockif = parse_block(indent+2)(fst(blocif_and_rest))(iline+1)
+                                                               (* TODO Vérifier bloc if n'est pas vide (mais pas bloc else) *)
+                                                               in let blockelse = parse_block(indent+2)(fst(blocelse_and_rest))(iline+1)
+                                                               in (iline, If(
+                                                                  parse_cond(r), blockif, blockelse
+                                                               ))::(parse_block (indent) (snd(blocelse_and_rest)) (iline+1))
+                                                             else 
+                                                               raise (Failure "ELSE bloc is bad")
+                                       else if wd = "WHILE" then
+                                          let blocwhile_and_rest = getlines_with_indent (rest) (indent+2)
+                                          in let blockwhile = parse_block(indent+2)(fst(blocwhile_and_rest))(iline+1)
+                                          in (iline, While(
+                                             parse_cond(r), blockwhile
+                                          ))::(parse_block (indent) (snd(blocwhile_and_rest)) (iline+1))
+                                       else 
+                                          (iline, parse_set (wd::r))::(parse_block indent rest (iline+1))
+                        else raise (Failure ( Printf.sprintf 
+                                       "Unexpected indentation : line=%d ('%s')\nGot %d expected %d" iline (String.concat " " line) (getindentation line) indent))
    in parse_block 0 lines 1
