@@ -1,0 +1,56 @@
+########### RAPPORT ###########
+
+1.  
+- SOMON Bastian | @somon | 21956725
+- BENAKLI William | @benakli | 21960601
+
+2- 
+    Les fonctionnalités implémentées sont celles attendues pour le rendu 1 c'est à dire 
+    les command --reprint et --eval. 
+     -> "--reprint" permet d'afficher le code dans le terminale
+     -> "--eval" permet d'évaluer un programme entrée en parametre
+
+3- 
+    Dans le dossier ou se situe le fichier Makefile et run, ouvrir un terminal.
+    Il faut dans un premier temps compiler. Pour cela il faut executer la command "make". 
+    Ensuite en fonction de l'option: 
+        Pour executer l'option --eval "./run --eval <fichier.p>" 
+        Pour executer l'option --reprint "./run --reprint <fichier.p>" 
+    
+    Aucune bibliothèques externes n'a été utilisé dans notre programme
+
+4-
+    Nous avonss fait le choix de separer chaque option du programme dans des fichier de manière 
+    modulaire. Cela permet d'avoir un code plus lisible. Des interfaces ".mli" ont 
+    été utilisé pour laisser l'acces qu'à certaines fonctions par les autres fichiers .ml
+
+        parser.ml -> Ce module contient toutes les fonctions en rapport avec le parsage 
+        du fichier donné en parametre. Il converti le fichier en ligne, qui seront traitées
+        par la suite afin d'obtenir un type program pour pouvoir l'afficher ou l'évaluer.
+        
+        eval.ml -> Ce module contient toutes les fonctions en rapport avec l'évaluation du 
+        programme. Il recupere un type program et effectue des operations dessus. Il renvoie
+        un type unit (). 
+        
+        model.ml -> Ce module contient tous les types possibles du programme.
+         Il represente une "classe modele" dans un schema MVC par exemple
+
+5- 
+    Lors de notre premiere réunion nous nous sommes données les taches à atteindre 
+    pour la prochaine réunion. Nous avons décidé de separer le travail en deux parties.
+
+    -> Read qui lui serait fait en partage d'écran à deux car plus complexe.
+    -> Eval/Print qui lui sera fait chacun de son coté car plus simple à faire. 
+
+    Nous avons pu avancer chacun de notre coté en faisant nos propres tests, et continuer
+    le travail sur read lors de nos réunions.
+
+    La chronologie de notre travail a été un peu perturbé par le nombre projet en cours
+    mais dans l'ensemble le projet avancé régulierement même si tout n'etais pas mise à jour
+    sur le git (le read en l'occurence).
+
+6-
+    Aucune remarque
+
+
+
