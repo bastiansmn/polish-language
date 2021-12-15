@@ -8,8 +8,6 @@ exception ExpressionMissing of string
 exception MultipleVariables of string
 exception UnexpectedIndentation of string
 
-let split_words line = String.split_on_char(' ')(line)
-
 let list_comp = [(Eq, "="); (Ne, "<>"); (Lt, "<"); (Le, "<="); (Gt, ">"); (Ge, ">=")]
 
 let parse_comp comp = try(List.assoc comp list_comp) with Not_found -> raise (WrongComparator "Unexpected comparator")
