@@ -1,5 +1,7 @@
 (*Fonction pour pour l'env *)
 
+open Model
+
 (* Verifie si une valeur est bien dans l'environnement *)
 let rec isInEnv env name = match env with
   | [] -> false
