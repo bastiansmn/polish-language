@@ -91,9 +91,9 @@ let get_lines filename =
    in let rec aux acc =
       match try_read () with
       | None -> acc
-      | Some(line) -> if String.length line <> 0 then aux(acc @ [(split_words line)])
+      | Some(line) -> if String.length line <> 0 then aux((split_words line)::acc)
                       else aux(acc)
-   in aux []
+   in List.rev(aux [])
 
 (* Renvoie le nombre d'espaces en début de ligne *)
 let getindentation line =
