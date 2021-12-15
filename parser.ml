@@ -171,8 +171,6 @@ let parse_program lines =
                            in match snd(blocif_and_rest) with
                               | [] -> []
                               | line::rest ->
-                                 List.iter (print_endline) line;
-                                 List.iter (List.iter print_string) rest;
                                  if List.hd(unindent line) = "ELSE" && getindentation(line) = indent then
                                     let blocelse_and_rest = getlines_with_indent (rest) (indent+2)
                                     in let blockif = parse_block(indent+2)(fst(blocif_and_rest))(iline+1)
@@ -181,8 +179,14 @@ let parse_program lines =
                                           in (iline, If(
                                              parse_cond(r), blockif, blockelse
                                           ))::(parse_block (indent) (snd(blocelse_and_rest)) (iline+1))
+                                 else if getindentation(line) = indent then
+                                    let blockif = parse_block (indent+2) (fst(blocif_and_rest)) (iline+1)
+                                    in if List.length blockif = 0 then raise (Failure "IF cannot be empty")
+                                       else (iline, If(
+                                          parse_cond(r), blockif, []
+                                       ))::((parse_block (indent) (snd(blocif_and_rest)) (iline+1)))
                                  else 
-                                    raise ( Failure "ELSE bloc is bad" )
+                                    raise ( Failure "Unexpected indentation" )
                         else if wd = "WHILE" then
                            let blocwhile_and_rest = getlines_with_indent (rest) (indent+2)
                            in let blockwhile = parse_block(indent+2)(fst(blocwhile_and_rest))(iline+1)
