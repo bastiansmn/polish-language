@@ -3,13 +3,13 @@
 (* Verifie si une valeur est bien dans l'environnement *)
 let rec isInEnv env name = match env with
   | [] -> false
-  | element::restant -> if(equal (fst (element)) name ) then true
+  | element::restant -> if(fst(element) = name ) then true
                         else isInEnv restant name
 
 (* Recupere une valeur dans l'environnement *)
 let rec getValueEnv env name = match env with
-  | [] -> -9999999
-  | element::restant -> if(equal (fst (element)) name ) then snd(element)  
+  | [] -> raise (Failure("Argument invalid"))
+  | element::restant -> if(fst(element) = name ) then snd(element)  
                         else getValueEnv restant name
 
 (* Entree : environnement et une expression
@@ -52,13 +52,15 @@ let function_print env expr = Printf.printf "<calcul> = %d \n" (calcul_expr env 
 (*Entre cond :   expr_fst * comp * expr_snd et verification que tout est correct.
  Sortie:  True ou False  *)
 let function_verifie_condition env (expr_fst, comp, expr_snd) =
+  let expr_gauche = calcul_expr env expr_fst in
+  let expr_droite = calcul_expr env expr_snd in
   match comp with
-  | Eq -> calcul_expr env expr_fst = calcul_expr env expr_snd
-  | Ne -> calcul_expr env expr_fst <> calcul_expr env expr_snd
-  | Lt -> calcul_expr env expr_fst < calcul_expr env expr_snd
-  | Le -> calcul_expr env expr_fst <= calcul_expr env expr_snd
-  | Gt -> calcul_expr env expr_fst > calcul_expr env expr_snd
-  | Ge -> calcul_expr env expr_fst >= calcul_expr env expr_snd
+  | Eq -> expr_gauche = expr_droite
+  | Ne -> expr_gauche <> expr_droite
+  | Lt -> expr_gauche < expr_droite
+  | Le -> expr_gauche <= expr_droite
+  | Gt -> expr_gauche > expr_droite
+  | Ge -> expr_gauche >= expr_droite
 
   (* Entree : environnement et un block 
     Cette fonction va prendre un block et un environnement 
@@ -86,11 +88,9 @@ and  eval_instruction env instruction =
 
  (* Evalue un program et initialise l'environnement de base à []*)    
 
-let eval program  = eval_block [] program
+let eval program  = let _ = eval_block [] program in ()
 
 (* Environnement c'est quoi ?
-
 Un environement est une liste de couple (name, value), ou name vaut le nom d'une variable et value sa valeur respectif 
 demamder lors d'un read ou d'un set
-
- *)
+*)
