@@ -8,6 +8,7 @@
 (***********************************************************************)
 
 open Model
+open Parser
 
 let abs:program = [
   (1, Read("n"));
@@ -62,8 +63,8 @@ let usage () =
 
 let main () =
   match Sys.argv with
-  | [|_;"--reprint";file|] -> Reprint.print_program abs
-  | [|_;"--eval";file|] -> Parser.read_polish file
+  | [|_;"--reprint";file|] -> Reprint.print_program ( parse_program ( get_lines file ) )
+  | [|_;"--eval";file|] -> read_polish file
   | _ -> usage ()
 
 (* lancement de ce main *)
