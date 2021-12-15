@@ -47,7 +47,7 @@ let function_read env name =
 
 (*On calcul la valeur avec la fonction calcule_expr et on affiche sur la sortie standard de la sorte
     "<calcul> = <expresion_calculé> \n"*)
-let function_print env expr = Printf.printf "<calcul> = %d \n" (calcul_expr env expr)
+let function_print env expr = Printf.printf "%d \n" (calcul_expr env expr)
 
 
 
