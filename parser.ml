@@ -8,16 +8,16 @@ exception ExpressionMissing of string
 exception MultipleVariables of string
 exception UnexpectedIndentation of string
 
-let list_comp = [(Eq, "="); (Ne, "<>"); (Lt, "<"); (Le, "<="); (Gt, ">"); (Ge, ">=")]
 
+let list_comp = [("=", Eq); ("<>", Ne); ("<", Lt); ("<=", Le); (">", Gt); (">=", Ge)]
 let parse_comp comp = try(List.assoc comp list_comp) with Not_found -> raise (WrongComparator "Unexpected comparator")
 
-let is_comp comp = List.mem comp list_comp
+let is_comp comp = List.mem comp (List.map fst list_comp)
       
-let is_int str = try (int_of_string str; true) with Invalid_argument (str) -> false
+let is_int str = try (let _ = int_of_string str in true) with Failure (str) -> false
                   
-let list_op = [(Eq, "="); (Ne, "<>"); (Lt, "<"); (Le, "<="); (Gt, ">"); (Ge, ">=")]
-let is_op op = List.mem comp list_comp
+let list_op = [("+", Add); ("-", Sub); ("*", Mul); ("/", Div); ("%", Mod)]
+let is_op op = List.mem op (List.map fst list_op)
 
 let parse_op op = try(List.assoc op list_op) with Not_found -> raise (WrongOperator "Unexpected operator")
 
