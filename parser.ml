@@ -1,39 +1,19 @@
 open Model
 
-let split_words line =
-   String.split_on_char(' ')(line)
+let split_words line = String.split_on_char(' ')(line)
 
-let parse_comp comp =
-   if comp = "=" then Eq
-   else if comp = "<>" then Ne
-   else if comp = "<" then Lt
-   else if comp = "<=" then Le
-   else if comp = ">" then Gt
-   else if comp = ">=" then Ge
-   else raise (Failure "Unexpected operator") 
+let list_comp = [(Eq, "="); (Ne, "<>"); (Lt, "<"); (Le, "<="); (Gt, ">"); (Ge, ">=")]
 
-let is_comp comp = (comp = "=" || comp = "<>"  || comp = "<" || comp = "<=" || comp = ">" || comp = ">=")
+let parse_comp comp = try(List.assoc comp list_comp) with Not_found -> raise (Failure "Unexpected comparator") 
+
+let is_comp comp = List.mem comp list_comp
       
-let is_int str =
-   let rec aux i =
-      try (
-         let ch = String.get(str)(i)
-         in if Char.code ch <= 57 && Char.code ch >= 48 || (ch = '-' && i = 0) then aux(i+1)
-         else false
-      ) with Invalid_argument(i) -> true
-   in aux 0
+let is_int str = try (int_of_string str; true) with Invalid_argument (str) -> false
+                  
+let list_op = [(Eq, "="); (Ne, "<>"); (Lt, "<"); (Le, "<="); (Gt, ">"); (Ge, ">=")]
+let is_op op = List.mem comp list_comp
 
-let is_op op =
-   if op = "+" || op = "-"  || op = "*" || op = "/" || op = "%" then true
-   else false
-
-let parse_op op =
-   if op = "+" then Add
-   else if op = "-" then Sub
-   else if op = "*" then Mul
-   else if op = "/" then Div
-   else if op = "%" then Mod
-   else raise (Failure "Unexpected operand")
+let parse_op op = try(List.assoc op list_op) with Not_found -> raise (Failure "Unexpected operand") 
 
 let parse_expr words =
    let rec listtostack list acc =
