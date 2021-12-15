@@ -15,12 +15,12 @@ let is_op op = List.mem comp list_comp
 
 let parse_op op = try(List.assoc op list_op) with Not_found -> raise (Failure "Unexpected operand") 
 
-let parse_expr words =
+let parse_expr tokens =
    let rec listtostack list acc =
       match list with
       | [] -> acc
       | e::l -> let _ = Stack.push(e)(acc) in listtostack l acc 
-   in let stack = listtostack (List.rev(words)) (Stack.create())
+   in let stack = listtostack (List.rev(tokens)) (Stack.create())
    in let rec aux () =
       let wd = Stack.pop(stack)
       in if is_op wd then
@@ -55,8 +55,8 @@ let get_lines filename =
    in let rec aux acc =
       match try_read () with
       | None -> acc
-      | Some(line) -> aux(acc @ [split_words line])
-   in aux []
+      | Some(line) -> aux(split_words line::acc)
+   in List.rev (aux [])
 
 (* Renvoie le nombre d'espaces en début de ligne *)
 let getindentation line =
