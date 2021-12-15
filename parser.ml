@@ -1,5 +1,13 @@
 open Model
 
+exception WrongOperator of string
+exception WrongComparator of string
+exception ExpressionNotAvailable of string
+exception ConditionMissing of string
+exception ExpressionMissing of string
+exception MultipleVariables of string
+exception UnexpectedIndentation of string
+
 (* Renvoie la liste des mots dans une ligne *)
 (* 
    Entrée : 
@@ -17,7 +25,7 @@ let parse_comp comp =
    else if comp = "<=" then Le
    else if comp = ">" then Gt
    else if comp = ">=" then Ge
-   else raise (Failure "Unexpected operator") 
+   else raise (WrongComparator "Unexpected comparator") 
 
 let is_comp comp = (comp = "=" || comp = "<>"  || comp = "<" || comp = "<=" || comp = ">" || comp = ">=")
 
@@ -40,7 +48,7 @@ let parse_op op =
    else if op = "*" then Mul
    else if op = "/" then Div
    else if op = "%" then Mod
-   else raise (Failure "Unexpected operand")
+   else raise (WrongOperator "Unexpected operator")
    
 let parse_expr words =
    let rec listtostack list acc =
@@ -62,13 +70,13 @@ let parse_expr words =
       | Num(i) -> Num(i)
       | Var(s) -> Var(s)
       | Op(op, e1, e2) -> Op(op, invertOp e2, invertOp e1)
-   in if not(Stack.is_empty(stack)) then raise (Failure "Expression not available")
+   in if not(Stack.is_empty(stack)) then raise (ExpressionNotAvailable "Expression not available")
       else invertOp(res)
 
 let parse_cond words =
    let rec aux_cond wrd acc =
       match wrd with
-      | [] -> raise (Failure "Unexpected syntaxe line") 
+      | [] -> raise (ConditionMissing "Unexpected syntaxe line") 
       | e::l -> if is_comp e then (parse_expr (acc), parse_comp e, parse_expr l)
          else aux_cond l (acc@[e]) 
    in aux_cond words []
@@ -83,7 +91,8 @@ let get_lines filename =
    in let rec aux acc =
       match try_read () with
       | None -> acc
-      | Some(line) -> aux(acc @ [split_words line])
+      | Some(line) -> if String.length line <> 0 then aux(acc @ [(split_words line)])
+                      else aux(acc)
    in aux []
 
 (* Renvoie le nombre d'espaces en début de ligne *)
@@ -98,7 +107,7 @@ let getindentation line =
 (* Prend une ligne (sans READ) et renvoie Read(var) ssi il n'y a qu'une seule var après READ *)
 let parse_read line =
    if List.length line = 1 then Read(List.hd line)
-   else raise (Failure "Cannot read multiple variables")
+   else raise (MultipleVariables "Cannot read multiple variables")
 
 (* Renvoie Print(expr) *)
 let parse_print line =
@@ -117,10 +126,10 @@ let unindent line =
 let parse_set line =
    let rec aux_set line acc =
       match line with
-      | [] -> raise (Failure "Unexpected syntaxe line") 
+      | [] -> raise (ExpressionMissing "Unexpected syntaxe line") 
       | e::l -> if e = ":=" then 
                   if List.length acc = 1 then Set(List.hd(acc), parse_expr l)
-                  else raise (Failure "Only one variable name expected")
+                  else raise (MultipleVariables "Only one variable name expected")
                 else aux_set l (e::acc)
    in aux_set (unindent line) []
 
@@ -166,7 +175,7 @@ let rec parse_block indent lines iline =
                            parse_while (rest) (indent) (r) (iline+1)
                         else 
                            (iline, parse_set (wd::r))::(parse_block indent rest (iline+1))
-         else raise (Failure ( Printf.sprintf 
+         else raise (UnexpectedIndentation ( Printf.sprintf 
                         "Unexpected indentation : line=%d ('%s')\nGot %d expected %d" iline (String.concat " " line) (getindentation line) indent))
 
 
@@ -199,7 +208,7 @@ and parse_if rest indent cond iline =
                      parse_cond(cond), blockif, []
                   ))::((parse_block (indent) (snd(blocif_and_rest)) (iline+1)))
             else 
-               raise ( Failure "Unexpected indentation" )
+               raise ( UnexpectedIndentation "Unexpected indentation" )
 
 
 (* Parse un while ainsi que son bloc suivant *)
