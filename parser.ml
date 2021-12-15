@@ -6,12 +6,12 @@ let split_words line =
 let rec print_list l =
    match l with
    | [] -> ()
-   | e::l -> print_endline e; print_list l
+   | e::l -> print_string e; Printf.printf " "; print_list l
 
 let rec print_file lines =
    match lines with
    | [] -> ()
-   | e::l -> print_list e; print_endline "--NEW LINE--"; print_file l
+   | e::l -> print_list e; Printf.printf "\n"; print_file l
 
 let parse_comp comp =
    if comp = "=" then Eq
@@ -172,7 +172,7 @@ let parse_program lines =
       | [] -> []
       | line::rest -> if getindentation line = indent then
                         match unindent(line) with
-                        | [] -> raise (Failure "Unexpected indent")
+                        | [] -> [] (* TODO Vérifier si on devrait renvoyer err *)
                         | wd::r ->  if wd = "READ" then 
                                        (iline, parse_read (r))::(parse_block indent rest (iline+1))
                                     else if wd = "PRINT" then
@@ -180,7 +180,7 @@ let parse_program lines =
                                     else if wd = "COMMENT" then
                                        parse_block (indent) (rest) (iline+1)
                                     else if wd = "IF" then
-                                       let blocs = split_in_blocs ( getlines_with_indent rest (indent+2))
+                                       let blocs = split_in_blocs ( getlines_with_indent rest (indent+2) )
                                        in (iline, 
                                           If(parse_cond r,
                                               parse_block (indent+2) (fst(blocs)) (iline+1),
