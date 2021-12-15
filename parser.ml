@@ -1,50 +1,7 @@
 open Model
 
-
 let split_words line =
    String.split_on_char(' ')(line)
-
-let rec print_list l =
-   match l with
-   | [] -> ()
-   | e::l -> print_endline e; print_list l
-
-let rec print_file lines =
-   match lines with
-   | [] -> ()
-   | e::l -> print_list e; print_endline "--NEW LINE--"; print_file l
-
-let parse_block lines =
-   failwith "TODO"
-   (* Lit chaque lignes,
-   si on remarque une indentation différente de celle courante (créer fonction aux ?), alors créer nouveau block avec les lignes qui ont cette même indentation (parse_block rec) (Peut etre ajouter un i = indentation pour le comparer aux blocs suivants)
-   sinon (si on est dans la même indentation que le block courant), la ligne courante est une instruction (parse_instr)
-   Exemple :
-   n := 12           <- lecture d'un nv block (on lancera parse_block avec 0 ?)
-   IF n = 2
-      n = 12         <- lecture d'un nv block (parse_block avec 2 ?)
-   ELSE
-      IF n = 1			<- lecture d'un nv block (2)
-         n = 14      <- lecture d'un nv block (4)
-      ELSE
-         n = 11 		<- idem
-   return n
-   *)
-
-let parse_instr lines =
-   failwith "TODO"
-   (* Lit chaques lignes
-   Si on lit un mot clé d'instruction (READ, SET, ...), alors on transf cette expr en ce qu'elle est censé devenir (appel à des fonctions pour chaque instr ?)
-   sinon (il devrait y avoir une erreur ou un comm)
-   *)
-
-(* TODO : fonction spécifiques à chaque instructions *)
-
-let parse_while lines =
-   failwith "TODO"
-   (* Lire la première ligne -> parse_cond
-   Ensuite parse_block pour le reste
-    *)
 
 let parse_comp comp =
    if comp = "=" then Eq
@@ -121,5 +78,119 @@ let get_lines filename =
       | Some(line) -> aux(acc @ [split_words line])
    in aux []
 
-let read_polish (filename:string) =
-   print_file (get_lines filename)
+(* Renvoie le nombre d'espaces en début de ligne *)
+let getindentation line =
+   let rec aux line acc =
+      match line with 
+      | [] -> 0
+      | e::l -> if e = "" then aux (l) (acc+1)
+               else acc
+   in aux line 0
+
+(* Prend des une ligne (sans READ) et renvoie Read(var) ssi il n'y a qu'une seule var après READ *)
+let parse_read line =
+   if List.length line = 1 then Read(List.hd line)
+   else raise (Failure "Cannot read multiple variables")
+
+(* Renvoie Print(expr) *)
+let parse_print line =
+   Print(parse_expr line)
+
+(* Renvoie la ligne 'line' désindentée *)
+let unindent line =
+   let rec aux line =
+      match line with
+      | [] -> line
+      | e::l -> if e = "" then aux l
+                else line
+   in aux line
+
+(* Parse set ssi il n'y a qu'une var avant := et une expr après *)
+let parse_set line =
+   let rec aux_set line acc =
+      match line with
+      | [] -> raise (Failure "Unexpected syntaxe line") 
+      | e::l -> if e = ":=" then 
+                  if List.length acc = 1 then Set(List.hd(acc), parse_expr l)
+                  else raise (Failure "Only one variable name expected")
+                else aux_set l (e::acc)
+   in aux_set (unindent line) []
+
+(* TODO : Vérifier qu'un else n'est pas seul
+   Actuellement :
+   WHILE cond
+      ...
+   ELSE
+      ...
+   est accepté
+ *)
+(* Renvoie toutes les lignes de line tant qu'il y a une indentation=ind (ligne de ELSE exclus) *)
+let getlines_with_indent lines ind =
+   let rec aux lines acc =
+      match lines with
+      | [] -> (acc, [])
+      | e::l -> if getindentation e >= ind && getindentation e mod 2 = 0 then aux l (acc@[e])
+                else (acc, e::l) 
+   in aux lines []
+
+(* Sépare des lignes en 2 listes de lignes à l'endroit où on lit ELSE 
+   Ex :
+   split_in_blocs ["  PRINT 2";"  PRINT 3";"ELSE";"  PRINT 4"]
+   renvoie (["  PRINT 2";"  PRINT 3"], ["  PRINT 4"])
+   Permet de séparer les deux blocs d'une instruction IF
+ *)
+let split_in_blocs lines =
+   let rec aux line bloc1 =
+      match line with 
+      | [] -> raise ( Failure "Cannot parse IF and ELSE blocs" )
+      | e::l -> if List.hd(e) = "ELSE" then (bloc1, l)
+                else aux l (bloc1@[e])
+   in aux lines []
+
+(* Parse un programme et appel parse les blocs intérieurs récursivement *)
+let parse_program lines =
+   let rec parse_block indent lines iline =
+      match lines with 
+      | [] -> []
+      | line::rest -> 
+         if getindentation line = indent then
+            match unindent(line) with
+            | [] -> [] (* TODO Vérifier si on devrait renvoyer err *)
+            | wd::r ->  if wd = "READ" then 
+                           (iline, parse_read (r))::(parse_block indent rest (iline+1))
+                        else if wd = "PRINT" then
+                           (iline, parse_print (r))::(parse_block indent rest (iline+1))
+                        else if wd = "COMMENT" then
+                           parse_block (indent) (rest) (iline+1)
+                        else if wd = "IF" then
+                           let blocif_and_rest = getlines_with_indent (rest) (indent+2) 
+                           in match snd(blocif_and_rest) with
+                              | [] -> []
+                              | line::rest ->
+                                 if List.hd(unindent line) = "ELSE" && getindentation(line) = indent then
+                                    let blocelse_and_rest = getlines_with_indent (rest) (indent+2)
+                                    in let blockif = parse_block(indent+2)(fst(blocif_and_rest))(iline+1)
+                                    in if List.length blockif = 0 then raise (Failure "IF cannot be empty")
+                                       else let blockelse = parse_block(indent+2)(fst(blocelse_and_rest))(iline+1)
+                                          in (iline, If(
+                                             parse_cond(r), blockif, blockelse
+                                          ))::(parse_block (indent) (snd(blocelse_and_rest)) (iline+1))
+                                 else if getindentation(line) = indent then
+                                    let blockif = parse_block (indent+2) (fst(blocif_and_rest)) (iline+1)
+                                    in if List.length blockif = 0 then raise (Failure "IF cannot be empty")
+                                       else (iline, If(
+                                          parse_cond(r), blockif, []
+                                       ))::((parse_block (indent) (snd(blocif_and_rest)) (iline+1)))
+                                 else 
+                                    raise ( Failure "Unexpected indentation" )
+                        else if wd = "WHILE" then
+                           let blocwhile_and_rest = getlines_with_indent (rest) (indent+2)
+                           in let blockwhile = parse_block(indent+2)(fst(blocwhile_and_rest))(iline+1)
+                           in (iline, While(
+                              parse_cond(r), blockwhile
+                           ))::(parse_block (indent) (snd(blocwhile_and_rest)) (iline+1))
+                        else 
+                           (iline, parse_set (wd::r))::(parse_block indent rest (iline+1))
+         else raise (Failure ( Printf.sprintf 
+                        "Unexpected indentation : line=%d ('%s')\nGot %d expected %d" iline (String.concat " " line) (getindentation line) indent))
+   in parse_block 0 lines 1
