@@ -10,16 +10,19 @@ exception UnexpectedIndentation of string
 
 
 let list_comp = [("=", Eq); ("<>", Ne); ("<", Lt); ("<=", Le); (">", Gt); (">=", Ge)]
-let parse_comp comp = try(List.assoc comp list_comp) with Not_found -> raise (WrongComparator "Unexpected comparator")
+let parse_comp comp = try(List.assoc comp list_comp) 
+                      with Not_found -> raise (WrongComparator "Unexpected comparator")
 
 let is_comp comp = List.mem comp (List.map fst list_comp)
       
-let is_int str = try (let _ = int_of_string str in true) with Failure (str) -> false
+let is_int str = try (let _ = int_of_string str in true) 
+                 with Failure (str) -> false
                   
 let list_op = [("+", Add); ("-", Sub); ("*", Mul); ("/", Div); ("%", Mod)]
 let is_op op = List.mem op (List.map fst list_op)
 
-let parse_op op = try(List.assoc op list_op) with Not_found -> raise (WrongOperator "Unexpected operator")
+let parse_op op = try(List.assoc op list_op) 
+                  with Not_found -> raise (WrongOperator "Unexpected operator")
 
 (* Renvoie la liste des mots dans une ligne *)
 (* 
@@ -119,8 +122,8 @@ let getlines_with_indent lines ind =
    let rec aux lines acc =
       match lines with
       | [] -> (acc, [])
-      | e::l -> if getindentation e >= ind && getindentation e mod 2 = 0 then aux l (acc@[e])
-                else (acc, e::l) 
+      | (pos, e)::l -> if getindentation e >= ind && getindentation e mod 2 = 0 then aux l (acc@[(pos, e)])
+                else (acc, (pos, e)::l) 
    in aux lines []
 
 (* Associe à chaque éléments de la liste son indice (partant de 1) *)
@@ -137,27 +140,37 @@ let map_index list =
       - Des lignes à parser 
    Sortie : Le bloc correspondant
 *)
-let rec parse_block indent lines iline =
+let rec parse_block indent lines =
       match lines with 
       | [] -> []
-      | line::rest ->
+      | (pos, line)::rest ->
          if getindentation line = indent then
             match unindent(line) with
             | [] -> [] (* TODO Vérifier si on devrait renvoyer err *)
             | wd::r ->  if wd = "READ" then 
-                           (iline, parse_read (r))::(parse_block indent rest (iline+1))
+                           try (
+                              (pos, parse_read (r))::(parse_block indent rest)
+                           ) with MultipleVariables(msg) -> raise (MultipleVariables(Printf.sprintf "%s : line=%d" msg pos))
                         else if wd = "PRINT" then
-                           (iline, parse_print (r))::(parse_block indent rest (iline+1))
+                           try (
+                              (pos, parse_print (r))::(parse_block indent rest)
+                           ) with ExpressionNotAvailable(msg) -> raise (ExpressionNotAvailable (Printf.sprintf "%s : line=%d" msg pos))
                         else if wd = "COMMENT" then
-                           parse_block (indent) (rest) (iline+1)
+                           parse_block (indent) (rest)
                         else if wd = "IF" then
-                           parse_if (rest) (indent) (r) (iline+1)
+                           parse_if (rest) (indent) (r) (pos)
                         else if wd = "WHILE" then
-                           parse_while (rest) (indent) (r) (iline+1)
+                           parse_while (rest) (indent) (r) (pos)
                         else 
-                           (iline, parse_set (wd::r))::(parse_block indent rest (iline+1))
+                           try (
+                              (pos, parse_set (wd::r))::(parse_block indent rest)
+                           ) with 
+                              | ExpressionMissing(msg) -> raise (ExpressionMissing ( 
+                                 Printf.sprintf "%s : line=%d" msg pos ))
+                              | MultipleVariables(msg) -> raise (MultipleVariables (
+                                 Printf.sprintf "%s : line=%d" msg pos))
          else raise (UnexpectedIndentation ( Printf.sprintf 
-                        "Unexpected indentation : line=%d ('%s')\nGot %d expected %d" iline (String.concat " " line) (getindentation line) indent))
+                        "Unexpected indentation : line=%d ('%s')\nGot %d expected %d" pos (String.concat " " line) (getindentation line) indent))
 
 
 (* Parse un if avec son bloc correspondant, puis son bloc ELSE si il existe *)
@@ -173,23 +186,37 @@ and parse_if rest indent cond iline =
       in match snd(blocif_and_rest) with
       (* line rest indent cond=r *)
          | [] -> []
-         | line::rest ->
-            if List.hd(unindent line) = "ELSE" && getindentation(line) = indent then
+         | (pos, line)::rest ->
+            if List.hd(unindent line) = "ELSE" && getindentation line = indent then
                let blocelse_and_rest = getlines_with_indent (rest) (indent+2)
-               in let blockif = parse_block (indent+2) (fst(blocif_and_rest)) (iline+1)
-               in if List.length blockif = 0 then raise (Failure "IF cannot be empty")
-                  else let blockelse = parse_block (indent+2) (fst(blocelse_and_rest))(iline+1)
-                     in (iline, If(
-                        parse_cond(cond), blockif, blockelse
-                     ))::(parse_block (indent) (snd(blocelse_and_rest)) (iline+1))
+               in let blockif = parse_block (indent+2) (fst(blocif_and_rest))
+               in if List.length blockif = 0 then raise (Failure ( Printf.sprintf "IF cannot be empty : line=%d" pos ) )
+                  else let blockelse = parse_block (indent+2) (fst(blocelse_and_rest))
+                     in try (
+                        (iline, If(
+                           parse_cond(cond), blockif, blockelse
+                        ))::(parse_block (indent) (snd(blocelse_and_rest)))
+                     ) with 
+                        | ConditionMissing(msg) -> raise (ConditionMissing(
+                           Printf.sprintf "%s : line=%d" msg pos))
+                        | ExpressionNotAvailable(msg) -> raise (ExpressionNotAvailable(
+                           Printf.sprintf "%s : line=%d" msg pos))
+                        | WrongComparator(msg) -> raise (WrongComparator(
+                           Printf.sprintf "%s : line=%d" msg pos))
             else if getindentation(line) = indent then
-               let blockif = parse_block (indent+2) (fst(blocif_and_rest)) (iline+1)
-               in if List.length blockif = 0 then raise (Failure "IF cannot be empty")
-                  else (iline, If(
-                     parse_cond(cond), blockif, []
-                  ))::((parse_block (indent) (snd(blocif_and_rest)) (iline+1)))
+               let blockif = parse_block (indent+2) (fst(blocif_and_rest))
+               in if List.length blockif = 0 then raise (Failure ( Printf.sprintf "IF cannot be empty : line=%d" pos ) )
+                  else try (
+                        (pos, If(
+                           parse_cond(cond), blockif, []
+                        ))::((parse_block (indent) (snd(blocif_and_rest))))
+                     ) with 
+                        | ExpressionNotAvailable(msg) -> raise(ExpressionNotAvailable(Printf.sprintf "%s : line=%d" msg pos))
+                        | WrongComparator(msg) -> raise(WrongComparator(Printf.sprintf "%s : line=%d" msg pos))
+                        | ConditionMissing(msg) -> raise(ConditionMissing(Printf.sprintf "%s : line=%d" msg pos))
             else 
-               raise ( UnexpectedIndentation "Unexpected indentation" )
+               raise ( UnexpectedIndentation ( Printf.sprintf 
+                        "Unexpected indentation : line=%d ('%s')\nGot %d expected %d" pos (String.concat " " line) (getindentation line) indent) )
 
 
 (* Parse un while ainsi que son bloc suivant *)
@@ -200,14 +227,19 @@ and parse_if rest indent cond iline =
       - Une condition à parser
    Sortie : While dans la synthaxe abstraite
  *)
-and parse_while rest indent cond iline =
+and parse_while rest indent cond pos =
    let blocwhile_and_rest = getlines_with_indent (rest) (indent+2)
-   in let blockwhile = parse_block(indent+2)(fst(blocwhile_and_rest))(iline+1)
-   in (iline, While(
-      parse_cond(cond), blockwhile
-   ))::(parse_block (indent) (snd(blocwhile_and_rest)) (iline+1))
+   in let blockwhile = parse_block (indent+2) (fst blocwhile_and_rest)
+   in try (
+      (pos, While(
+         parse_cond(cond), blockwhile
+      ))::(parse_block (indent) (snd blocwhile_and_rest))
+   ) with 
+      | ExpressionNotAvailable(msg) -> raise(ExpressionNotAvailable(Printf.sprintf "%s : line=%d" msg pos))
+      | WrongComparator(msg) -> raise(WrongComparator(Printf.sprintf "%s : line=%d" msg pos))
+      | ConditionMissing(msg) -> raise(ConditionMissing(Printf.sprintf "%s : line=%d" msg pos))
 
 
 (* Parse un programme et appel parse les blocs intérieurs récursivement *)
 let parse_program lines =
-   parse_block 0 (List.map snd (map_index lines)) 1
+   parse_block 0 (map_index lines)
