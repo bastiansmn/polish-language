@@ -11,8 +11,12 @@ open Model
 open Parser
 
 let usage () =
-  print_string "Polish : analyse statique d'un mini-langage\n";
-  print_string "usage: à documenter (TODO)\n"
+  print_string "\nPolish : analyse statique d'un mini-langage\n";
+  print_string "usage: \n";
+  print_string "\t./run --reprint path/to/file.p\n";
+  print_string "\t\tAffiche le fichier Polish tel qu'il est vu pas eval.ml\n\n";
+  print_string "\t./run --eval path/to/file.p\n";
+  print_string "\t\tExecute le programme Polish\n\n"
 
 let main () =
   match Sys.argv with
