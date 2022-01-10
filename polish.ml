@@ -21,7 +21,7 @@ let usage () =
 let main () =
   match Sys.argv with
   | [|_;"--reprint";file|] -> Reprint.print_program ( parse_program ( get_lines file ) )
-  | [|_;"--simpl";file|] -> Reprint.print_program ( parse_program ( get_lines file ) )
+  | [|_;"--simpl";file|] -> Reprint.print_program ( parse_program_simplifie ( get_lines file ) )
   | [|_;"--eval";file|] -> Eval.eval ( parse_program ( get_lines file ) )
   | _ -> usage ()
 

@@ -1,5 +1,34 @@
 open Parser
 
+| 
+let rec calcul_expr env expr = 
+  match expr with
+  | Num (int) -> int
+  | Var (name) -> if (isInEnv env name) then getValueEnv env name
+                  else raise (Division_by_zero) (* TODO : Pas la bonne exception*)
+  | Op (op, expr_fst, expr_snd) ->
+     let expr_gauche = calcul_expr env expr_fst in
+     let expr_droite = calcul_expr env expr_snd in
+     match op with
+     | Add -> (expr_gauche + expr_droite)
+     | Sub -> (expr_gauche - expr_droite)
+     | Mul -> (expr_gauche *  expr_droite)
+     | Div -> if expr_droite <> 0 then (expr_gauche / expr_droite)
+              else raise (Division_by_zero)
+     | Mod -> if expr_droite <> 0 then (expr_gauche mod expr_droite)
+              else raise (Division_by_zero)
+
+let function_verifie_condition (expr_fst, comp, expr_snd) =
+  let expr_gauche = calcul_expr expr_fst in
+  let expr_droite = calcul_expr expr_snd in
+  match comp with
+  | Eq -> expr_gauche = expr_droite
+  | Ne -> expr_gauche <> expr_droite
+  | Lt -> expr_gauche < expr_droite
+  | Le -> expr_gauche <= expr_droite
+  | Gt -> expr_gauche > expr_droite
+  | Ge -> expr_gauche >= expr_droite
+
 let rec parse_block indent lines iline =
       match lines with 
       | [] -> []
@@ -67,9 +96,8 @@ and parse_if rest indent cond iline =
 and parse_while rest indent cond iline =
    let blocwhile_and_rest = getlines_with_indent (rest) (indent+2)
    in let blockwhile = parse_block(indent+2)(fst(blocwhile_and_rest))(iline+1)
-   in (iline, While(
-      parse_cond(cond), blockwhile
-   ))::(parse_block (indent) (snd(blocwhile_and_rest)) (iline+1))
+   in 
+   if((iline, While(parse_cond(cond), blockwhile))::(parse_block (indent) (snd(blocwhile_and_rest)) (iline+1))
 
 
 (* Parse un programme et appel parse les blocs intérieurs récursivement *)
