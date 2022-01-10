@@ -1,14 +1,14 @@
 open Parser
 
-| 
-let rec calcul_expr env expr = 
+exception NoSimplifiedOperation of string
+
+let rec calcul_expr expr = 
   match expr with
   | Num (int) -> int
-  | Var (name) -> if (isInEnv env name) then getValueEnv env name
-                  else raise (Division_by_zero) (* TODO : Pas la bonne exception*)
+  | Var (name) -> raise NoSimplifiedOperation "n'est pas une calcule";
   | Op (op, expr_fst, expr_snd) ->
-     let expr_gauche = calcul_expr env expr_fst in
-     let expr_droite = calcul_expr env expr_snd in
+     let expr_gauche = calcul_expr expr_fst in
+     let expr_droite = calcul_expr expr_snd in
      match op with
      | Add -> (expr_gauche + expr_droite)
      | Sub -> (expr_gauche - expr_droite)
@@ -19,9 +19,9 @@ let rec calcul_expr env expr =
               else raise (Division_by_zero)
 
 let function_verifie_condition (expr_fst, comp, expr_snd) =
-  let expr_gauche = calcul_expr expr_fst in
-  let expr_droite = calcul_expr expr_snd in
-  match comp with
+  let expr_gauche = try calcul_expr expr_fst with noSimplifiedOperation -> false
+  let expr_droite = try calcul_expr expr_fst with noSimplifiedOperation -> false 
+  in match comp with
   | Eq -> expr_gauche = expr_droite
   | Ne -> expr_gauche <> expr_droite
   | Lt -> expr_gauche < expr_droite
@@ -71,9 +71,9 @@ and parse_if rest indent cond iline =
                in let blockif = parse_block (indent+2) (fst(blocif_and_rest)) (iline+1)
                in if List.length blockif = 0 then raise (Failure "IF cannot be empty")
                   else let blockelse = parse_block (indent+2) (fst(blocelse_and_rest))(iline+1)
-                     in (iline, If(
-                        parse_cond(cond), blockif, blockelse
-                     ))::(parse_block (indent) (snd(blocelse_and_rest)) (iline+1))
+                     in if (function_verifie_condition parse_cond(cond)) then 
+                     (iline, If(parse_cond(cond), blockif, blockelse))::(parse_block (indent) (snd(blocelse_and_rest)) (iline+1))
+                    else (iline, If(parse_cond(cond), [], blockelse))::(parse_block (indent) (snd(blocelse_and_rest)) (iline+1))
             else if getindentation(line) = indent then
                let blockif = parse_block (indent+2) (fst(blocif_and_rest)) (iline+1)
                in if List.length blockif = 0 then raise (Failure "IF cannot be empty")
@@ -96,9 +96,9 @@ and parse_if rest indent cond iline =
 and parse_while rest indent cond iline =
    let blocwhile_and_rest = getlines_with_indent (rest) (indent+2)
    in let blockwhile = parse_block(indent+2)(fst(blocwhile_and_rest))(iline+1)
-   in 
-   if((iline, While(parse_cond(cond), blockwhile))::(parse_block (indent) (snd(blocwhile_and_rest)) (iline+1))
-
+   in if (function_verifie_condition parse_cond(cond)) then 
+        (iline, While(parse_cond(cond), blockwhile))::(parse_block (indent) (snd(blocwhile_and_rest)) (iline+1))
+      else (iline, [], blockwhile))::(parse_block (indent) (snd(blocwhile_and_rest)) (iline+1))
 
 (* Parse un programme et appel parse les blocs intérieurs récursivement *)
 

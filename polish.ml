@@ -9,6 +9,7 @@
 
 open Model
 open Parser
+open Simplifie
 
 let usage () =
   print_string "\nPolish : analyse statique d'un mini-langage\n";
