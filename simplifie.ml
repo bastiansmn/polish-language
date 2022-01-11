@@ -1,105 +1,105 @@
-open Parser
+open Model
 
-exception NoSimplifiedOperation of string
+let rec is_simpl expr env =
+   match expr with
+   | Var(v) -> (try let _ = List.assoc v env in true with Not_found -> false)
+   | Num(_) -> true
+   | Op(_, e1, e2) -> is_simpl e1 env && is_simpl e2 env
 
-let rec calcul_expr expr = 
-  match expr with
-  | Num (int) -> int
-  | Var (name) -> raise NoSimplifiedOperation "n'est pas une calcule";
-  | Op (op, expr_fst, expr_snd) ->
-     let expr_gauche = calcul_expr expr_fst in
-     let expr_droite = calcul_expr expr_snd in
-     match op with
-     | Add -> (expr_gauche + expr_droite)
-     | Sub -> (expr_gauche - expr_droite)
-     | Mul -> (expr_gauche *  expr_droite)
-     | Div -> if expr_droite <> 0 then (expr_gauche / expr_droite)
-              else raise (Division_by_zero)
-     | Mod -> if expr_droite <> 0 then (expr_gauche mod expr_droite)
-              else raise (Division_by_zero)
+let is_simpl_c cond =
+   let rec aux expr = 
+      match expr with
+      | Var(_) -> false
+      | Num(_) -> true
+      | Op(_, e1, e2) -> aux e1 && aux e2
+   in match cond with
+   | (e1, _, e2) -> aux e1 && aux e2
 
-let function_verifie_condition (expr_fst, comp, expr_snd) =
-  let expr_gauche = try calcul_expr expr_fst with noSimplifiedOperation -> false
-  let expr_droite = try calcul_expr expr_fst with noSimplifiedOperation -> false 
-  in match comp with
-  | Eq -> expr_gauche = expr_droite
-  | Ne -> expr_gauche <> expr_droite
-  | Lt -> expr_gauche < expr_droite
-  | Le -> expr_gauche <= expr_droite
-  | Gt -> expr_gauche > expr_droite
-  | Ge -> expr_gauche >= expr_droite
+let rec simpl_expr expr env =
+   match expr with
+   | Var(n) -> (try let value = List.assoc n env in Num(value) with Not_found -> Var(n))
+   | Num(i) ->  Num(i)
+   | Op(op, e1, e2) -> Op(op, simpl_expr e1 env, simpl_expr e2 env)
+                       
 
-let rec parse_block indent lines iline =
-      match lines with 
-      | [] -> []
-      | line::rest ->
-         if getindentation line = indent then
-            match unindent(line) with
-            | [] -> [] (* TODO Vérifier si on devrait renvoyer err *)
-            | wd::r ->  if wd = "READ" then 
-                           (iline, parse_read (r))::(parse_block indent rest (iline+1))
-                        else if wd = "PRINT" then
-                           (iline, parse_print (r))::(parse_block indent rest (iline+1))
-                        else if wd = "COMMENT" then
-                           parse_block (indent) (rest) (iline+1)
-                        else if wd = "IF" then
-                           parse_if (rest) (indent) (r) (iline+1)
-                        else if wd = "WHILE" then
-                           parse_while (rest) (indent) (r) (iline+1)
-                        else 
-                           (iline, parse_set (wd::r))::(parse_block indent rest (iline+1))
-         else raise (UnexpectedIndentation ( Printf.sprintf 
-                        "Unexpected indentation : line=%d ('%s')\nGot %d expected %d" iline (String.concat " " line) (getindentation line) indent))
+let rec compute_expr expr =
+match expr with
+   | Var(n) -> 1
+   | Num(i) ->  i
+   | Op(op, e1, e2) -> let ve1 = compute_expr e1 in
+                        let ve2 = compute_expr e2 in
+                        (match op with
+                        | Add -> if ve1 = 0 then ve2
+                                 else if ve2 = 0 then ve1
+                                 else (ve1) + (ve2)
+                        | Sub -> if ve1 = 0 then - ve2
+                                 else if ve2 = 0 then ve1
+                                 else (ve1) - (ve2)
+                        | Mul -> if ve1 = 0 || ve2 = 0 then 0
+                                 else if ve1 = 1 then ve2
+                                 else if ve2 = 1 then ve1
+                                 else (ve1) * (ve2)
+                        | Div -> if ve1 = 0 then 0
+                                 else (ve1) / (ve2)
+                        | Mod -> if ve1 = 0 then 0
+                                 else (ve1) mod (ve2))
+
+let simpl_cond cond env =
+   match cond with
+   | (e1, cmp, e2) -> (simpl_expr e1 env, cmp, simpl_expr e2 env)
+
+let compute_cond cond =
+   match cond with 
+   | (e1, cmp, e2) -> let e1res = compute_expr e1 in let e2res = compute_expr e2
+                      in match cmp with
+                        | Eq -> e1res = e2res
+                        | Ne -> e1res <> e2res
+                        | Lt -> e1res < e2res
+                        | Le -> e1res <= e2res
+                        | Gt -> e1res > e2res
+                        | Ge -> e1res >= e2res
+
+let rec simpl_block block env =
+   match block with
+   | [] -> []
+   | (pos, instr)::rest -> match instr with 
+                         | Print(e) -> (pos, Print(e))::simpl_block rest env
+                         | Read(name) -> (pos, Read(name))::simpl_block rest env
+                         | Set(name, expr) -> if is_simpl expr env then simpl_block (rest) ( (name, compute_expr expr )::env )
+                                              else (pos, Set(name, expr))::simpl_block rest env
+                         | If(cond, b1, b2) -> (pos, If (
+                            simpl_cond cond env,
+                            simpl_block b1 env,
+                            simpl_block b2 env
+                         ))::simpl_block rest env
+                         | While(cond, b) -> (pos, While (
+                            simpl_cond cond env,
+                            simpl_block b env
+                         ))::simpl_block rest env
+
+let progpag_vars program =
+   simpl_block program []
+
+let rec delete_unused_blocks block =
+   match block with
+   | [] -> []
+   | (pos, instr)::rest -> match instr with
+                         | Print(e) -> (pos, Print(e))::delete_unused_blocks rest
+                         | Read(name) -> (pos, Read(name))::delete_unused_blocks rest
+                         | Set(name, expr) -> (pos, Set(name, expr))::delete_unused_blocks rest
+                         | If(cond, b1, b2) -> if is_simpl_c cond then 
+                                                let b = compute_cond cond
+                                                in if b then delete_unused_blocks b1@delete_unused_blocks rest
+                                                else delete_unused_blocks b2@delete_unused_blocks rest
+                                             else (pos, If(cond, b1, b2))::delete_unused_blocks rest
+                         | While(cond, b) -> if is_simpl_c cond then 
+                                                let res = compute_cond cond
+                                                in if res then (pos, While(cond, b))::delete_unused_blocks rest
+                                                else delete_unused_blocks rest
+                                             else (pos, While(cond, b))::delete_unused_blocks rest
+
+let simpl program =
+   delete_unused_blocks (progpag_vars program)
 
 
-(* Parse un if avec son bloc correspondant, puis son bloc ELSE si il existe *)
-(* 
-   Entrée :
-      - Des lignes restantes après le if (rest)
-      - Une indentation courante
-      - Une condition à parser
-   Sorite : If dans la synthaxe abstraite
- *)
-and parse_if rest indent cond iline =
-   let blocif_and_rest = getlines_with_indent (rest) (indent+2) 
-      in match snd(blocif_and_rest) with
-      (* line rest indent cond=r *)
-         | [] -> []
-         | line::rest ->
-            if List.hd(unindent line) = "ELSE" && getindentation(line) = indent then
-               let blocelse_and_rest = getlines_with_indent (rest) (indent+2)
-               in let blockif = parse_block (indent+2) (fst(blocif_and_rest)) (iline+1)
-               in if List.length blockif = 0 then raise (Failure "IF cannot be empty")
-                  else let blockelse = parse_block (indent+2) (fst(blocelse_and_rest))(iline+1)
-                     in if (function_verifie_condition parse_cond(cond)) then 
-                     (iline, If(parse_cond(cond), blockif, blockelse))::(parse_block (indent) (snd(blocelse_and_rest)) (iline+1))
-                    else (iline, If(parse_cond(cond), [], blockelse))::(parse_block (indent) (snd(blocelse_and_rest)) (iline+1))
-            else if getindentation(line) = indent then
-               let blockif = parse_block (indent+2) (fst(blocif_and_rest)) (iline+1)
-               in if List.length blockif = 0 then raise (Failure "IF cannot be empty")
-                  else (iline, If(
-                     parse_cond(cond), blockif, []
-                  ))::((parse_block (indent) (snd(blocif_and_rest)) (iline+1)))
-            else 
-               raise ( UnexpectedIndentation "Unexpected indentation" )
 
-
-
-(* Parse un while ainsi que son bloc suivant *)
-(* 
-   Entrée :
-      - Des lignes restantes après le if (rest)
-      - Une indentation courante
-      - Une condition à parser
-   Sortie : While dans la synthaxe abstraite
- *)
-and parse_while rest indent cond iline =
-   let blocwhile_and_rest = getlines_with_indent (rest) (indent+2)
-   in let blockwhile = parse_block(indent+2)(fst(blocwhile_and_rest))(iline+1)
-   in if (function_verifie_condition parse_cond(cond)) then 
-        (iline, While(parse_cond(cond), blockwhile))::(parse_block (indent) (snd(blocwhile_and_rest)) (iline+1))
-      else (iline, [], blockwhile))::(parse_block (indent) (snd(blocwhile_and_rest)) (iline+1))
-
-(* Parse un programme et appel parse les blocs intérieurs récursivement *)
-
-let parse_program_simplifie lines = parse_block 0 (List.map snd (map_index lines)) 1
