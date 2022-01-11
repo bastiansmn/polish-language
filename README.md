@@ -5,19 +5,9 @@ Projet PF5 2021 : Polish
 
 Voir [projet.pdf](projet.pdf)
 
-## Modalités du projet, des rendus et de l'évaluation
-
-Voir [CONSIGNES.md](CONSIGNES.md)
-
-## Usage de git et GitLab
-
-Voir [GIT.md](GIT.md)
-
 ## Prérequis à installer
 
-Voir [INSTALL.md](https://gaufre.informatique.univ-paris-diderot.fr/letouzey/pf5/blob/master/INSTALL.md) sur le site du cours.
-
-  - ocaml évidemment
+  - ocaml
   - dune et make
 
 ## Compilation et lancement
@@ -32,4 +22,16 @@ Par défaut, `make` est seulement utilisé pour abréger les commandes `dune` (v
 
 Enfin pour lancer votre programme: `./run arg1 arg2 ...`
 
-  
+Usage : 
+```
+Polish : analyse statique d'un mini-langage
+usage: 
+  /run --reprint path/to/file.p
+    Affiche le fichier Polish tel qu'il est vu pas eval.ml
+  ./run --eval path/to/file.p
+    Execute le programme Polish
+  ./run --vars path/to/file.p
+    Réalise une analyse statique des variables lues et non-initialisées.
+  ./run --simpl path/to/file.p
+    Simplifie le programme si il possède des éléments triviaux
+```
