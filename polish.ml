@@ -9,6 +9,7 @@
 
 open Model
 open Parser
+open Simplifie
 
 let usage () =
   print_string "\nPolish : analyse statique d'un mini-langage\n";
@@ -18,11 +19,14 @@ let usage () =
   print_string "\t./run --eval path/to/file.p\n";
   print_string "\t\tExecute le programme Polish\n\n";
   print_string "\t./run --vars path/to/file.p\n";
-  print_string "\t\tRéalise une analyse statique des variables lues et non-initialisées."
+  print_string "\t\tRéalise une analyse statique des variables lues et non-initialisées.";
+  print_string "\t./run --simpl path/to/file.p\n";
+  print_string "\t\tSimplifie le programme si il possède des éléments triviaux"
 
 let main () =
   match Sys.argv with
   | [|_;"--reprint";file|] -> Reprint.print_program ( parse_program ( get_lines file ) )
+  | [|_;"--simpl";file|] -> Reprint.print_program ( simpl ( parse_program ( get_lines file ) ) )
   | [|_;"--eval";file|] -> Eval.eval ( parse_program ( get_lines file ) )
   | [|_;"--vars";file|] -> Vars.vars ( parse_program ( get_lines file ) )
   | _ -> usage ()
