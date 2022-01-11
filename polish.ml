@@ -20,6 +20,8 @@ let usage () =
   print_string "\t\tExecute le programme Polish\n\n";
   print_string "\t./run --vars path/to/file.p\n";
   print_string "\t\tRéalise une analyse statique des variables lues et non-initialisées."
+  print_string "\t./run --simpl path/to/file.p\n";
+  print_string "\t\tSimplifie le programme si il possède des éléments triviaux"
 
 let main () =
   match Sys.argv with
