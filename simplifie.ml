@@ -63,7 +63,8 @@ let rec simpl_block block env =
    match block with
    | [] -> []
    | (pos, instr)::rest -> match instr with 
-                         | Print(e) -> (pos, Print(e))::simpl_block rest env
+                         | Print(expr) -> if is_simpl expr env then (pos, Print(simpl_expr expr env))::simpl_block rest env
+                                       else (pos, Print(expr))::simpl_block rest env
                          | Read(name) -> (pos, Read(name))::simpl_block rest env
                          | Set(name, expr) -> if is_simpl expr env then simpl_block (rest) ( (name, compute_expr expr )::env )
                                               else (pos, Set(name, expr))::simpl_block rest env
