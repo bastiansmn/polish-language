@@ -16,7 +16,9 @@ let usage () =
   print_string "\t./run --reprint path/to/file.p\n";
   print_string "\t\tAffiche le fichier Polish tel qu'il est vu pas eval.ml\n\n";
   print_string "\t./run --eval path/to/file.p\n";
-  print_string "\t\tExecute le programme Polish\n\n"
+  print_string "\t\tExecute le programme Polish\n\n";
+  print_string "\t./run --vars path/to/file.p\n";
+  print_string "\t\tRéalise une analyse statique des variables lues et non-initialisées."
 
 let main () =
   match Sys.argv with
