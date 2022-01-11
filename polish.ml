@@ -22,6 +22,7 @@ let main () =
   match Sys.argv with
   | [|_;"--reprint";file|] -> Reprint.print_program ( parse_program ( get_lines file ) )
   | [|_;"--eval";file|] -> Eval.eval ( parse_program ( get_lines file ) )
+  | [|_;"--vars";file|] -> Vars.vars ( parse_program ( get_lines file ) )
   | _ -> usage ()
 
 (* lancement de ce main *)
